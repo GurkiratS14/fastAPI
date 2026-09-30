@@ -1,9 +1,28 @@
 from fastapi import FastAPI 
 from fastapi import HTTPException
 from fastapi import Response
+from fastapi import Depends 
+from sqlmodel import create_engine
+from sqlmodel import SQLModel
+from sqlmodel import Session
 from random import randint
 from datetime import datetime
-from typing import Any
+from typing import Any, Annotated
+
+sqlite_file_name="database.db"
+sqlite_url=f"sqlite:///{sqlite_file_name}"
+
+connect_args={"check_same_thread":False}
+engine=create_engine(sqlite_url,connect_args=connect_args)
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+SessionDep=Annotated[Session,Depends(get_session)]
 
 app=FastAPI(root_path="/api/v1")
 
