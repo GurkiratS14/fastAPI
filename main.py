@@ -1,5 +1,6 @@
 from fastapi import FastAPI 
 from fastapi import HTTPException
+from fastapi import Response
 from random import randint
 from datetime import datetime
 from typing import Any
@@ -36,7 +37,7 @@ async def read_campaign(id:int):
             return {"campaign":campaign}
     raise HTTPException(status_code=404)
 
-@app.post("/campaigns")
+@app.post("/campaigns",status_code=201)
 async def create_campaign(body:dict[str,Any]):
 
     new : Any ={
@@ -64,4 +65,13 @@ async def update_campaign(id:int, body:dict[str,Any]):
 
             data[index]=updated
             return {"campaign":updated}
+    raise HTTPException(status_code=404)
+
+@app.delete("/campaigns/{id}")
+async def delete_campaign(id:int):
+
+    for index, campaign in enumerate(data):
+        if campaign.get("campaign_id")==id:
+            data.pop(index)
+            return Response(status_code=204) 
     raise HTTPException(status_code=404)
