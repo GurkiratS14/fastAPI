@@ -5,9 +5,18 @@ from fastapi import Depends
 from sqlmodel import create_engine
 from sqlmodel import SQLModel
 from sqlmodel import Session
+from sqlmodel import select
 from random import randint
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Annotated
+from contextlib import asynccontextmanager
+from sqlmodel import Field
+
+class Campaign(SQLModel,table=True):
+    campaign_id: int | None=Field(default=None,primary_key=True)
+    name: str=Field(index=True)
+    due_date: datetime | None=Field(default=None,index=True)
+    created_at: datetime=Field(default_factory=lambda:datetime.now(timezone.utc),nullable=True,index=True)
 
 sqlite_file_name="database.db"
 sqlite_url=f"sqlite:///{sqlite_file_name}"
@@ -24,7 +33,20 @@ def get_session():
 
 SessionDep=Annotated[Session,Depends(get_session)]
 
-app=FastAPI(root_path="/api/v1")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    with Session(engine) as session:
+        if not session.exec(select(Campaign)).first():
+            session.add_all([
+                Campaign(name="Summer Launch",due_date=datetime.now()),
+                Campaign(name="Black Friday",due_date=datetime.now())
+            ])
+            session.commit()
+
+    yield
+
+app=FastAPI(root_path="/api/v1",lifespan=lifespan)
 
 @app.get("/")
 async def root():
